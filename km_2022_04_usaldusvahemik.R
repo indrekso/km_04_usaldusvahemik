@@ -34,14 +34,33 @@ lkredcc_ci95 <- groupwiseMean(lkredcc ~ region, ee8, na.rm = TRUE)
 lkredcc_ci95$laius <- lkredcc_ci95$Trad.upper - lkredcc_ci95$Trad.lower
 lkredcc_ci95
 
-# Arvutame ka standardhälbe, et uurida hajuvust gruppides
+library(meantables)
 
-lkredcc_ci95$sd <- ee8 %>%
-  group_by(region) %>%
-  summarise(sd = sd(lkredcc, na.rm = TRUE)) %>%
-  pull(sd)
+ee8 %>% 
+  group_by(region) %>% 
+  mean_table(lkredcc)
 
-lkredcc_ci95
+lk_95 <- ee8 %>% 
+  group_by(region) %>% 
+  mean_table(lkredcc)
+
+ggplot(lk_95, aes(x = group_cat, y = mean)) +
+  geom_point() +
+  geom_errorbar(aes(ymin = lcl, ymax = ucl), width = 0.1)
+
+Harjutus 1
+
+Koosta allolev punktdiagramm, kus x-teljel on regioonid ja y-teljel tunnuse punktidega esitatud tunnuse lkredcc keskmised.
+
+ggplot(lk_95, aes(x = _____, y = _____)) +
+  geom_point() +
+  geom_errorbar(aes(ymin = _____, ymax = _____), width = 0.1)
+
+
+ggplot(lkredcc_ci95, aes(x = region, y = Mean)) +
+  geom_point() +
+  geom_errorbar(aes(ymin = Trad.lower, ymax = Trad.upper), width = 0.1)
+
 
 # Mida suurem hajuvus, seda laiem usaldusvahemik. Vaatame ka, kui laiad on usaldusvahemikud sõltuvalt usaldusnivoost ja paneme nad joonisele
 
@@ -50,7 +69,7 @@ lkredcc_ci99 <- groupwiseMean(lkredcc ~ region, ee8, na.rm = TRUE, conf = 0.99)
 
 library(ggplot2)
 ggplot(lkredcc_ci95, aes(x = region, y = Mean)) +
-  geom_point(stat = "identity") +
+  geom_point() +
   geom_errorbar(data = lkredcc_ci99, aes(ymin = Trad.lower, ymax = Trad.upper), width = 0.05, color = "blue") +
   geom_errorbar(aes(ymin = Trad.lower, ymax = Trad.upper), width = 0.1, color = "black") +
   geom_errorbar(data = lkredcc_ci90, aes(ymin = Trad.lower, ymax = Trad.upper), width = 0.15, color = "red")
