@@ -1,0 +1,38 @@
+---
+title: "Usaldusvahemiku praktikum"
+author: "Indrek Soidla"
+date: '2023-09-26'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+## Harjutus 1
+
+Koosta allolev punktdiagramm, kus x-teljel on viis regiooni ja y-teljel tunnuse punktidega esitatud tunnuse `lkredcc` keskmised.
+
+```{r}
+library(haven)
+library(tidyverse)
+# install.packages("meantables")
+library(meantables)
+
+r8 <- read_spss("data/ESS8e02_2.sav")
+ee8 <- r8 %>% 
+  filter(cntry == "EE") %>% 
+  select(lkredcc, region, pspwght)
+
+lk_95 <- ee8 %>% 
+  group_by(region) %>% 
+  mean_table(lkredcc)
+
+lk_95
+```
+
+```{r echo = FALSE}
+ggplot(lk_95, aes(x = group_cat, y = mean)) +
+  geom_point()
+```
+
