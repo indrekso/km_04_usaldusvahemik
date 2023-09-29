@@ -1,0 +1,519 @@
+---
+title: "Usaldusvahemik"
+author: "Indrek Soidla"
+institute: "Tartu Ülikool"
+date: "2023/09/23 (updated: `r Sys.Date()`)"
+output:
+  xaringan::moon_reader:
+    self_contained: true
+    lib_dir: libs
+    nature:
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+---
+
+```{r setup, include=FALSE}
+options(htmltools.dir.version = FALSE, message = FALSE, warning = FALSE)
+```
+
+### Laeme andmed sisse, eraldame Eesti andmed
+
+```{r message = FALSE, warning = FALSE}
+library(haven)
+library(tidyverse)
+r8 <- read_spss("data/ESS8e02_2.sav")
+
+ee8 <- r8 |>
+  filter(cntry == "EE") |>
+  select(lkredcc, region, pspwght)
+```
+
+---
+
+### Kontrollime tunnuse `lkredcc` jaotusparameetreid
+
+```{r message = FALSE, warning = FALSE}
+library(summarytools)
+descr(ee8$lkredcc)
+```
+
+---
+
+### Kodeerime tunnuse `region` ümber eestikeelseks
+
+```{r}
+ee8$region <- dplyr::recode(as.factor(ee8$region), 
+                     "EE001" = "Põhja-Eesti", 
+                     "EE004" = "Lääne-Eesti",
+                     "EE006" = "Kesk-Eesti",
+                     "EE007" = "Kirde-Eesti",
+                     "EE008" = "Lõuna-Eesti")
+table(ee8$region)
+```
+
+---
+
+### Arvutame paketi `meantables` abiga hinnangute keskmised ja usalduspiirid regiooniti
+
+```{r warning = FALSE, message = FALSE, eval = FALSE}
+# install.packages("meantables")
+library(meantables)
+
+ee8 |>
+  group_by(region) |>
+  mean_table(lkredcc)
+```
+
+```{r mean-table-html, warning = FALSE, message = FALSE, echo = FALSE}
+# install.packages("meantables")
+library(meantables)
+
+ee8 |>
+  group_by(region) |>
+  mean_table(lkredcc) |>
+  knitr::kable(format = 'html')
+```
+
+---
+
+### Punktdiagramm
+
+.pull-left[
+```{r}
+lk_95 <- ee8 |>
+  group_by(region) |>
+  mean_table(lkredcc)
+```
+
+```{r plot-point-i, eval = FALSE}
+ggplot(lk_95, 
+       aes(x = group_cat, 
+                  y = mean)) +
+  geom_point()
+```
+]
+
+.pull-right[
+```{r ref.label = "plot-point-i", echo = FALSE}
+```
+]
+
+---
+
+### Vahemikdiagramm
+
+.pull-left[
+```{r plot-error, eval = FALSE}
+ggplot(lk_95, 
+       aes(x = group_cat, 
+           y = mean)) +
+  geom_point() +
+  geom_errorbar(
+    aes(ymin = lcl, 
+        ymax = ucl), 
+    width = 0.1)
+```
+]
+
+.pull-right[
+```{r ref.label = "plot-error", echo = FALSE}
+```
+]
+
+---
+
+### Millest sõltub usaldusvahemiku laius?
+
+```{r eval = FALSE}
+ee8 |>
+  group_by(region) |>
+  mean_table(lkredcc) |>
+  mutate(laius = ucl - lcl) |>
+  select(group_cat, n, mean, sd, laius)
+```
+
+```{r echo = FALSE}
+ee8 |>
+  group_by(region) |>
+  mean_table(lkredcc) |>
+  mutate(laius = ucl - lcl) |>
+  select(group_cat, n, mean, sd, laius) |>
+  knitr::kable(format = 'html')
+```
+
+---
+
+### Kuidas sõltub usaldusvahemiku laius usaldusnivoost?
+
+Arvutame usalduspiirid ka usaldusnivoodel 99% ja 90%
+
+```{r}
+lk_99 <- ee8 |>
+  group_by(region) |>
+  mean_table(lkredcc, t_prob = 0.995)
+
+lk_90 <- ee8 |>
+  group_by(region) |>
+  mean_table(lkredcc, t_prob = 0.95)
+```
+
+---
+
+### Usaldusvahemikud eri usaldusnivoodel
+
+```{r plot-error-3, eval = FALSE}
+ggplot(lk_95, aes(x = group_cat, y = mean)) +
+  geom_point() +
+  geom_errorbar(data = lk_99, aes(ymin = lcl, ymax = ucl),  #<<
+                width = 0.05, colour = "blue") + #<<
+  geom_errorbar(aes(ymin = lcl, ymax = ucl), width = 0.1) +
+  geom_errorbar(data = lk_90, aes(ymin = lcl, ymax = ucl),  #<<
+                width = 0.15, colour = "red")  #<<
+```
+
+---
+
+### Usaldusvahemikud eri usaldusnivoodel
+
+```{r ref.label = "plot-error-3", echo = FALSE}
+```
+
+---
+
+### Uurime lähemalt usaldusvahemikke usaldusnivool 95%
+
+.pull-left[
+```{r ref.label = "plot-error", eval = FALSE}
+```
+]
+
+.pull-right[
+```{r ref.label = "plot-error", echo = FALSE}
+```
+]
+
+---
+
+### Harjutus 3
+
+```{r}
+ee8a <- r8 %>% 
+  filter(cntry == "EE") %>% 
+  select(gvsrdcc, edulvlb, pspwght)
+
+ee8a <- ee8a %>% 
+  mutate(har = case_when(edulvlb <= 213 ~ "Kuni põhiharidus",
+                         edulvlb == 313 ~ "Keskharidus",
+                         edulvlb > 213 & edulvlb < 600 ~ "Kutseharidus",
+                         edulvlb >= 600 ~ "Kõrgharidus"))
+
+library(forcats)
+ee8a$har <- fct_relevel(ee8a$har, 
+                        "Kuni põhiharidus", 
+                        "Kutseharidus", 
+                        "Keskharidus", 
+                        "Kõrgharidus")
+```
+
+---
+
+### Harjutus 3
+
+.pull-left[
+```{r}
+gs_uv <- ee8a |>
+  drop_na(har) |>
+  group_by(har) |>
+  mean_table(gvsrdcc)
+```
+
+```{r plot-error-ex3, eval = FALSE}
+ggplot(gs_uv, 
+       aes(x = group_cat, 
+                  y = mean)) +
+  geom_point() +
+  geom_errorbar(
+    aes(ymin = lcl, 
+        ymax = ucl), 
+    width = 0.1
+    )
+```
+]
+
+.pull-right[
+```{r ref.label = "plot-error-ex3", echo = FALSE}
+```
+]
+
+---
+
+class: center, middle, inverse
+
+# Keskmiste vahe usalduspiirid 
+
+---
+
+### Arvutame keskmiste vahede usalduspiirid
+
+```{r}
+ee8 %>%   filter(region == "Kirde-Eesti" | region == "Kesk-Eesti") %>% 
+  t.test(lkredcc ~ region, data = .)
+```
+
+---
+
+### Arvutame keskmiste vahede usalduspiirid
+
+```{r}
+ee8 %>% 
+  filter(region == "Kirde-Eesti" | region == "Lääne-Eesti") %>% 
+  t.test(lkredcc ~ region, data = .)
+```
+
+---
+
+### Harjutus 4
+
+```{r}
+ee8a %>% 
+  filter(har == "Kuni põhiharidus" | har == "Kutseharidus") %>% 
+  t.test(gvsrdcc ~ har, data = .)
+```
+
+---
+
+### Harjutus 4
+
+```{r}
+ee8a %>% 
+  filter(har == "Kuni põhiharidus" | har == "Keskharidus") %>% 
+  t.test(gvsrdcc ~ har, data = .)
+```
+
+---
+
+### Harjutus 4
+
+```{r}
+ee8a %>% 
+  filter(har == "Kutseharidus" | har == "Keskharidus") %>% 
+  t.test(gvsrdcc ~ har, data = .)
+```
+
+---
+
+### Harjutus 4
+
+```{r}
+ee8a %>% 
+  filter(har == "Keskharidus" | har == "Kõrgharidus") %>% 
+  t.test(gvsrdcc ~ har, data = .)
+```
+
+---
+
+class: center, middle, inverse
+
+# Usaldusvahemike arvutamine kaaludega
+
+---
+
+### Usaldusvahemike arvutamine kaaludega
+
+- Eelnevad näited olid lihtsuse mõttes tehtud ilma kaaludeta, täpsemate tulemuste saamiseks oleks tarvis ESS-i andmete puhul kasutada ka järelkihistamiskaale
+
+- Selleks on tarvis paketi survey abi
+
+```{r message = FALSE, warning = FALSE}
+# install.packages("survey")
+library(survey)
+
+ee8w <- svydesign(id = ~1, data = ee8, weights = ~pspwght)
+```
+
+---
+
+### Arvutame tunnuse lkredcc kaalutud keskmise ja usalduspiirid
+
+```{r}
+svymean(~lkredcc, design = ee8w, na.rm = TRUE)
+```
+
+--
+
+```{r}
+svymean(~lkredcc, design = ee8w, na.rm = TRUE) %>% 
+  confint()
+```
+
+---
+
+### Arvutame tunnuse lkredcc kaalutud keskmised ja usalduspiirid regioonides
+
+```{r}
+svyby(~lkredcc, ~region, design = ee8w, FUN = svymean, 
+      na.rm = TRUE, vartype = c("se", "ci"))
+```
+
+---
+
+### Teeme sõltumatute kogumite t-testi kaalutud andmetega
+
+Loome iga regiooni jaoks eraldi andmestikud
+
+```{r message = FALSE, warning = FALSE}
+# install.packages("weights")
+library(weights)
+
+lk_ki <- ee8 %>% 
+  filter(region == "Kirde-Eesti")
+
+lk_ke <- ee8 %>% 
+  filter(region == "Kesk-Eesti")
+
+lk_le <- ee8 %>% 
+  filter(region == "Lõuna-Eesti")
+```
+
+---
+
+### Teeme sõltumatute kogumite t-testi kaalutud andmetega
+
+```{r}
+wtd.t.test(lk_ki$lkredcc, lk_ke$lkredcc, 
+           weight = lk_ki$pspwght, weighty = lk_ke$pspwght)
+```
+
+
+---
+
+### Teeme sõltumatute kogumite t-testi kaalutud andmetega
+
+```{r}
+wtd.t.test(lk_ki$lkredcc, lk_le$lkredcc, 
+           weight = lk_ki$pspwght, weighty = lk_le$pspwght)
+```
+
+---
+
+### `wtd.t.test` ei anna kaalutud keskmiste vahe usalduspiire
+
+- Aga need saab ise arvutada standardvea põhjal
+
+- Omistame testitulemused uuele objektile `t_test_ki_le`
+
+```{r warning = FALSE}
+t_test_ki_le <- wtd.t.test(lk_ki$lkredcc, lk_le$lkredcc, 
+                           weight = lk_ki$pspwght, 
+                           weighty = lk_le$pspwght)
+```
+
+---
+
+### Arvutame keskmiste vahe usalduspiirid
+
+```{r}
+str(t_test_ki_le)
+```
+
+- Alumine usalduspiir usaldusnivool 95%
+
+```{r}
+t_test_ki_le$additional[1] - 1.96 * t_test_ki_le$additional[4]
+```
+
+- Ülemine usalduspiir usaldusnivool 95%
+
+```{r}
+t_test_ki_le$additional[1] + 1.96 * t_test_ki_le$additional[4]
+```
+
+---
+
+### Harjutus 5
+
+```{r}
+ee8w <- svydesign(id = ~1, data = ee8a, weights = ~pspwght)
+
+svyby(~gvsrdcc, ~har, design = ee8w, FUN = svymean, 
+      na.rm = TRUE, vartype = c("se", "ci"))
+
+gs_uv_w <- svyby(~gvsrdcc, ~har, design = ee8w, FUN = svymean, 
+      na.rm = TRUE, vartype = c("se", "ci"))
+```
+
+```{r plot-error-w-ex5, eval = FALSE}
+ggplot(gs_uv_w, aes(x = har, y = gvsrdcc)) +
+  geom_point(stat = "identity") +
+  geom_errorbar(aes(ymin = ci_l, ymax = ci_u), width = 0.1) +
+  labs(title = "Vahemikdiagramm kaalutud andmetega") +
+  ylim(4, 5.5)
+```
+
+---
+
+### Harjutus 5
+
+.pull-left[
+```{r echo = FALSE}
+ggplot(gs_uv, 
+       aes(x = group_cat, 
+                  y = mean)) +
+  geom_point() +
+  geom_errorbar(
+    aes(ymin = lcl, 
+        ymax = ucl), 
+    width = 0.1
+    ) +
+  labs(title = "Vahemikdiagramm kaalumata andmetega") +
+  ylim(4, 5.5)
+```
+
+]
+
+.pull-right[
+```{r ref.label = "plot-error-w-ex5", echo = FALSE}
+```
+]
+
+---
+
+class: center, middle, inverse
+
+# Osakaalu usaldusvahemik
+
+---
+
+### Osakaalu usaldusvahemiku laius
+
+- Kuidas sõltub osakaalu usaldusvahemik osakaalu (protsentnäitaja) suurusest?
+
+- Näide valimi n = 1000 kohta
+
+```{r}
+p <- seq(0, 1, 0.01)
+
+dat <- data.frame(p)
+
+dat$veapiir <- 1.96 * sqrt(p * (1 - p) / 1000)
+
+knitr::kable(dat, format = 'html')
+```
+
+---
+
+### Osakaalu usaldusvahemiku laius
+
+```{r}
+joonis <- ggplot(dat, aes(p, veapiir)) +
+  geom_path()
+```
+
+---
+
+### Osakaalu usaldusvahemiku laius
+
+```{r}
+plotly::ggplotly(joonis)
+```

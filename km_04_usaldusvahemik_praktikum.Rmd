@@ -2,7 +2,14 @@
 title: "Usaldusvahemiku praktikum"
 author: "Indrek Soidla"
 date: '2023-09-26'
-output: html_document
+output: 
+  html_document:
+    theme: spacelab
+    highlight: tango
+    fig_cap: true
+    toc: true
+    toc_float: true
+    toc_depth: 3
 ---
 
 ```{r setup, include=FALSE}
@@ -11,7 +18,7 @@ knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 
 ## Harjutus 1
 
-Koosta allolev punktdiagramm, kus x-teljel on viis regiooni ja y-teljel tunnuse punktidega esitatud tunnuse `lkredcc` keskmised.
+Täiendades allolevat `ggplot`-käsu koodi, koosta punktdiagramm, kus x-teljel on viis regiooni ja y-teljel tunnuse punktidega esitatud tunnuse `lkredcc` keskmised.
 
 ```{r}
 library(haven)
@@ -24,6 +31,13 @@ ee8 <- r8 %>%
   filter(cntry == "EE") %>% 
   select(lkredcc, region, pspwght)
 
+ee8$region <- dplyr::recode(as.factor(ee8$region), 
+                     "EE001" = "Põhja-Eesti", 
+                     "EE004" = "Lääne-Eesti",
+                     "EE006" = "Kesk-Eesti",
+                     "EE007" = "Kirde-Eesti",
+                     "EE008" = "Lõuna-Eesti")
+
 lk_95 <- ee8 %>% 
   group_by(region) %>% 
   mean_table(lkredcc)
@@ -31,8 +45,72 @@ lk_95 <- ee8 %>%
 lk_95
 ```
 
+```{r eval = FALSE}
+ggplot(lk_95, aes(x = _____, y = _____)) +
+  geom______()
+```
+
+
+Punktdiagramm peaks välja nägema selline:
+
 ```{r echo = FALSE}
 ggplot(lk_95, aes(x = group_cat, y = mean)) +
   geom_point()
 ```
 
+## Harjutus 2
+
+Täienda allolevat koodi, et lisada punktidagrammile n-ö vurrud, mis näitaksid diagrammil olevate aritmeetiliste keskmiste usaldusvahemikke. Saad need lisada funktsiooniga `geom_errorbar`. 
+
+```{r eval = FALSE}
+ggplot(lk_95, aes(x = _____, y = _____)) +
+  geom______() +
+  geom_errorbar(aes(ymin = _____, ymax = _____), width = 0.1)
+```
+
+Vurrudega punktdiagrammi nimetatakse ka vahemikdiagrammiks, antud juhul peaks see välja nägema selline:
+
+```{r echo = FALSE}
+ggplot(lk_95, aes(x = group_cat, y = mean)) +
+  geom_point() +
+  geom_errorbar(aes(ymin = lcl, ymax = ucl), width = 0.1)
+```
+
+## Harjutus 3
+
+Vastajatelt küsiti ka, kui tõenäoline on, et piisaval hulgal valitsusi rakendab meetmeid kliimamuutuse vähendamiseks (tunnus `gvsrdcc`). 
+
+Millised on selle arvamuse keskmise punkthinnangud ja vahemikhinnangud haridustasemeti? Esitage vahemikhinnangud ka vahemikdiagrammil. 
+
+Kuidas neid vahemikhinnanguid õigesti tõlgendada?
+
+Kodeerige haridustaseme tunnus ümber nelja kategooriasse.
+
+```{r}
+ee8a <- r8 %>% 
+  filter(cntry == "EE") %>% 
+  select(gvsrdcc, edulvlb, pspwght)
+
+ee8a <- ee8a %>% 
+  mutate(har = case_when(edulvlb <= 213 ~ "Kuni põhiharidus",
+                         edulvlb == 313 ~ "Keskharidus",
+                         edulvlb > 213 & edulvlb < 600 ~ "Kutseharidus",
+                         edulvlb >= 600 ~ "Kõrgharidus"))
+
+library(forcats)
+ee8a$har <- fct_relevel(ee8a$har, 
+                        "Kuni põhiharidus", 
+                        "Kutseharidus", 
+                        "Keskharidus", 
+                        "Kõrgharidus")
+```
+
+## Harjutus 4
+
+Võttes aluseks eelmise ülesande lahenduse, mida saab väita nende usaldusvahemike võrdlemise põhjal?
+Milliste gruppide vahel saab populatsiooni tasandil väita erinevuste esinemist usaldusnivool 95%?
+Kus tarvis, arvutage keskmiste erinevuste usaldusvahemikud.
+
+## Harjutus 5
+
+Tehke harjutused 3 ja 4 läbi, võttes arvesse kaale. Kuivõrd tulemused erinevad?
