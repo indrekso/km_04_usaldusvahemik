@@ -1,0 +1,306 @@
+---
+title: "Hüpoteeside testimine: praktikum"
+author: "Indrek Soidla"
+date: "4 10 2023"
+output: 
+  html_document:
+    theme: spacelab
+    highlight: tango
+    fig_cap: true
+    toc: true
+    toc_float: true
+    toc_depth: 3
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r message = FALSE, warning = FALSE}
+library(haven)
+library(tidyverse)
+library(weights)
+library(TAM)
+```
+
+## Ülesanne 5.1 {.tabset .tabset-fade .tabset-pills}
+
+### Küsimus
+
+ESS-s küsitakse, kuivõrd vastaja usaldab seitset erinevat institutsiooni. Neist viis küsimust (tunnused `trstprl` kuni `trstprt`) on siseriiklike institutsioonide usaldamise kohta. Koostage nende alusel n-ö indekstunnus, mille väärtuseks saab igal indiviidil tema poolt siseriiklikele institutsioonidele antud usaldushinnangute keskmine (vihje: abi on funktsioonist mutate). 
+
+Kas/kuivõrd keskmine institutsioonide usaldamise tase erineb sõltuvalt sellest, kas enda suhtes diskrimineerimist tajutakse või mitte (tunnus `dscrgrp`)? Millise tulemuseni jõuate *t*-testi alusel (tehke *t*-test läbi kaalutud andmetega, järeldus tehke olulisuse nivool 0,05). Lisaks, hinnake keskmiste erinevuse ulatust populatsioonis, arvutades selleks *t*-testi tulemuste põhjal *keskmiste erinevuse* usaldusvahemiku.
+
+Andmete sisselugemise ja usaldusindeksi loomise kood:
+
+```{r}
+ee9 <- read_spss("data/ee9.sav")
+
+ee9 <- ee9 %>% 
+  mutate(trust = (trstprl + trstlgl + trstplc + trstplt + trstprt) / 5)
+```
+
+### Vihje
+
+Võrdleme ühe arvulise tunnuse keskmisi kahes grupis. Grupid on teineteisest sõltumatud, st teineteist välistavad, üks indiviid ei saa kuuluda korraga mõlemasse gruppi.
+
+### Vihje 2
+
+Esmalt on tarvis luua eraldi andmestikud nende andmetega, kes diskrimineerimist tajuvad ja nende andmetega, kes diskrimineerimist ei taju; vajalik funktsioon on `filter`. Seejärel saab teha *t*-testi funktsiooniga `wtd.t.test`. Keskmiste erinevuse usalduspiirid saab arvutada t-testi väljundis olevate näitajate põhjal, kas sisestades usalduspiiri arvutamiseks vajalikud väärtused klaviatuurilt või omistades testitulemuse uuele objektile ja kasutades sellesse objekti salvestatud väärtuseid (näited loenguslaididel).
+
+### Tulemus
+
+```{r echo = FALSE}
+ee9_diskr_jah <- ee9 %>% 
+  filter(dscrgrp == 1)
+
+ee9_diskr_ei <- ee9 %>% 
+  filter(dscrgrp == 2)
+
+wtd.t.test(ee9_diskr_jah$trust, ee9_diskr_ei$trust, ee9_diskr_jah$pspwght, ee9_diskr_ei$pspwght)
+```
+
+```{r echo = FALSE, warning = FALSE}
+ttest_trust <- wtd.t.test(ee9_diskr_jah$trust, ee9_diskr_ei$trust, ee9_diskr_jah$pspwght, ee9_diskr_ei$pspwght)
+```
+
+Keskmiste erinevuse alumine usalduspiir
+
+```{r echo = FALSE}
+ttest_trust$additional[1] - 1.96 * ttest_trust$additional[4]
+```
+
+Keskmiste erinevuse ülemine usalduspiir
+
+```{r echo = FALSE}
+ttest_trust$additional[1] + 1.96 * ttest_trust$additional[4]
+```
+
+
+### Lahendus
+
+```{r eval = FALSE}
+ee9_diskr_jah <- ee9 %>% 
+  filter(dscrgrp == 1)
+
+ee9_diskr_ei <- ee9 %>% 
+  filter(dscrgrp == 2)
+
+wtd.t.test(ee9_diskr_jah$trust, ee9_diskr_ei$trust, ee9_diskr_jah$pspwght, ee9_diskr_ei$pspwght)
+
+ttest_trust <- wtd.t.test(ee9_diskr_jah$trust, ee9_diskr_ei$trust, ee9_diskr_jah$pspwght, ee9_diskr_ei$pspwght)
+ttest_trust$additional[1] - 1.96 * ttest_trust$additional[4]
+ttest_trust$additional[1] + 1.96 * ttest_trust$additional[4]
+```
+
+
+## Ülesanne 5.2 {.tabset .tabset-fade .tabset-pills}
+
+### Küsimus 1
+
+Kujutame ette, et teeme sõltumatute kogumit *t*-testi, mille tulemusena saame t-statistiku väärtuseks $t = 2.2$, vabadusastmete arvu $df = 1225$ juures on olulisuse tõenäosuseks $p = 0.02$. Kas järgnev tõlgendus on õige või vale?
+
+Olulisuse nivool 0,05 kinnitame alternatiivhüpoteesi, sest olulisuse tõenäosus on väiksem olulisuse nivoost.
+
+### Küsimus 2
+
+Eelnev tõlgendus on õige.
+
+Küsimus 2: võtame sama näite, kus *t*-statistiku olulisuse tõenäosus oli 0,02. Kas järgnev tõlgendus on õige või vale?
+
+Kui väidame keskmiste erinevust populatsioonis, siis tõenäosus teha teist liiki viga on 0,02 ehk kaks sajast.
+
+### Küsimus 3
+
+Eelnev tõlgendus on vale. Olulisuse tõenäosus ei näita teist liiki vea tõenäosust, hüpoteeside testimine keskendub esimest liiki vea vältimisele.
+
+Küsimus 3: võtame sama näite, kus *t*-statistiku olulisuse tõenäosus oli 0,02. Kas järgnev tõlgendus on õige või vale?
+
+Kui väidame keskmiste erinevust populatsioonis, siis tõenäosus teha esimest liiki viga on 0,02 ehk kaks sajast.
+
+### Küsimus 3
+
+Eelnev tõlgendus on vale. Olulisuse tõenäosus ei näita tõenäosust teha esimest liiki viga, tegelikult võib see tõenäosus olla suurem.
+
+Küsimus 4: ikka eelnev näide, $t = 2.2, df = 1225, p = 0.02$. Kas järgnev tõlgendus on õige või vale?
+
+Nullhüpoteesi kehtides populatsioonist suurel hulgal juhuvalimeid $(n = 1227)$ võttes on võimalik saada valim, kus *t*-statistiku väärtus on 2,2 või sellest suurem, maksimaalselt kahel juhul sajast.
+
+### Vastus
+
+Eelnev tõlgendus on õige.
+
+
+## Ülesanne 5.3 {.tabset .tabset-fade .tabset-pills}
+
+### Küsimus
+
+Kas Eestis erineb rahulolu tervishoiusüsteemiga rahulolust haridussüsteemiga? Uurige seda keskmiste erinevuse alusel *t*-testiga (nagu eelnevalt, kaaluge andmeid), tehke järeldus olulisuse nivool 0,01. Lisaks arvutage kahe tunnuse vahede keskmise usalduspiirid, et leida, kui palju võivad kaks rahuloluhinnangut keskmiselt erineda populatsioonis. Kontrollige eelnevalt *t*-testi eelduste täidetust. Alustuseks võiksite aga arvutada kummagi tunnuse keskmise, sest `wtd.t.test` väljund seda ei anna (annab ainult keskmiste erinevuse).
+
+### Vihje 
+
+Uurime kahe tunnuse keskmise erinevust samade indiviidide põhjal (täpsemalt öeldes nende indiviidide põhjal, kellel pole kummaski tunnuses andmelünka). Seega on tarvis kasutada paariskogumite *t*-testi.
+
+### Vihje 2
+
+Kaalutud keskmiste arvutamiseks saab kasutada paketist `TAM` funktsiooni `weighted_mean` (sama teeb ära ka R-i baasversiooni funktsioon `weighted.mean`). Seejärel on paariskogumite *t*-testi tegemiseks vaja arvutada kahe tunnuse väärtuste vahed (st uude tunnusesse arvutada iga indiviidi kohta tema rahuloluhinnangute vahe). Eelduste kontrollimiseks saab kasutada arvutatud tunnuse jaotuse visuaalset vaatlust (funktsioonid `ggplot` ja `geom_bar`), asümmeetria- ja järskuskordaja arvutamiseks paketist `TAM` funktsioone `weighted_skewness` ja `weighted_kurtosis`. 
+
+### Vihje 3
+
+Paariskogumite *t*-testi jaoks saab kasutada funktsiooni `wtd.t.test`, kontrollides rahuloluhinnangute vahede aritmeetilise keskmise erinevust nullist (näide loenguslaididel). Keskmise erinevuse usalduspiiride arvutamine käib analoogselt eelneva ülesandega, aga pange tähele, et erinevalt eelmisest ülesandest paluti siin otsus hüpoteesipaari kohta teha olulisuse nivool 0,01. Seega on paslik võtta siin usaldusvahemiku arvutamise aluseks eelnevast ülesandest erinev usaldusnivoo.
+
+### Tulemus
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+ee9 %>% 
+  drop_na(stfhlth, stfedu) %>% 
+  summarise(kesk_stf_hlth = weighted_mean(stfhlth, w = pspwght),
+            kesk_stf_edu = weighted_mean(stfedu, w = pspwght))
+
+ee9 <- ee9 %>% 
+  mutate(stf_hlth_edu = stfhlth - stfedu)
+
+ggplot(ee9, aes(stf_hlth_edu, weights = pspwght)) +
+  geom_bar()
+```
+
+Asümmeetriakordaja ja järskuskordaja
+
+```{r echo = FALSE}
+weighted_skewness(ee9$stf_hlth_edu, w = ee9$pspwght)
+weighted_kurtosis(ee9$stf_hlth_edu, w = ee9$pspwght)
+
+wtd.t.test(ee9$stf_hlth_edu, 0, ee9$pspwght)
+```
+
+Alumine usalduspiir
+
+```{r echo = FALSE, message = FALSE}
+ttest_stf_hlth_edu <- wtd.t.test(ee9$stf_hlth_edu, 0, ee9$pspwght)
+ttest_stf_hlth_edu$additional[1] - 2.58 * ttest_stf_hlth_edu$additional[4]
+```
+
+Ülemine usalduspiir
+
+```{r echo = FALSE}
+ttest_stf_hlth_edu$additional[1] + 2.58 * ttest_stf_hlth_edu$additional[4]
+```
+
+### Lahendus
+
+```{r eval = FALSE}
+ee9 %>% 
+  drop_na(stfhlth, stfedu) %>% 
+  summarise(kesk_stf_hlth = weighted_mean(stfhlth, w = pspwght),
+            kesk_stf_edu = weighted_mean(stfedu, w = pspwght))
+
+ee9 <- ee9 %>% 
+  mutate(stf_hlth_edu = stfhlth - stfedu)
+
+ggplot(ee9, aes(stf_hlth_edu, weights = pspwght)) +
+  geom_bar()
+
+weighted_skewness(ee9$stf_hlth_edu, w = ee9$pspwght)
+weighted_kurtosis(ee9$stf_hlth_edu, w = ee9$pspwght)
+
+wtd.t.test(ee9$stf_hlth_edu, 0, ee9$pspwght)
+
+ttest_stf_hlth_edu <- wtd.t.test(ee9$stf_hlth_edu, 0, ee9$pspwght)
+ttest_stf_hlth_edu$additional[1] - 2.58 * ttest_stf_hlth_edu$additional[4]
+ttest_stf_hlth_edu$additional[1] + 2.58 * ttest_stf_hlth_edu$additional[4]
+```
+
+## Ülesanne 5.4 {.tabset .tabset-fade .tabset-pills}
+
+### Küsimus
+
+Teoreetiline küsimus (millel oleksid analüüsis praktilised tagajärjed): millist *t*-testi peaksime kasutama, kui soovime teada, 
+
+a. kas eestlaste ja venelaste rahulolu tervishoiusüsteemiga on erinev
+b. kas venelaste rahulolu tervishoiusüsteemiga ja rahulolu haridussüsteemiga erineb
+c. kas eestlaste rahulolu tervishoiusüsteemiga ja rahulolu haridussüsteemiga erineb
+d. kas eestlaste rahulolu tervishoiusüsteemiga erineb venelaste rahulolust haridussüsteemiga (sisulises plaanis võib selline võrdlus tunduda küsitav, aga mõnel juhul võib see isegi mõttekas olla)
+
+### Vastused
+
+a. Sõltumatute kogumite *t*-test
+b. Paariskogumite *t*-test
+c. Paariskogumite *t*-test
+d. Sõltumatute kogumite *t*-test
+
+## Ülesanne 5.5 {.tabset .tabset-fade .tabset-pills}
+
+### Küsimus
+
+ESS-i 8. küsitluslaines (aastal 2016) küsiti vastajatelt, mil määral nad tunnevad isiklikku kohustust püüda kliimamuutust vähendada (tunnus `ccrdprs` skaalal 0 - üldse mitte, 10 - suurel määral). Kas Eesti ja Leedu elanike arvamus selles küsimuses erineb (Läti kohta 8. laine andmed puuduvad)? Leidke vastus keskmiste võrdluse teel, tehke otsus olulisuse nivool 0,05. Sarnaselt eelnevaga 
+  - kontrollige *t*-testi eelduste täidetust
+  - arvutage vastuste keskmised Eestis ja Leedus
+  - pärast *t*-testi arvutage keskmiste erinevuse usalduspiirid, et leida, millist arvamuste keskmist erinevust saame populatsioonis eeldada.
+
+Andmete laadimise käsk:
+
+```{r}
+r8 <- read_spss("data/ESS8e02_2.sav")
+```
+
+### Vihje
+
+Võrdleme ühe arvulise tunnuse keskmisi kahes riigis (grupis), kummagi grupi keskmine ei sõltu vastustest teises riigis, seega tuleks siin kasutada sõltumatute kogumite *t*-testi.
+
+### Tulemus
+
+```{r echo = FALSE}
+r8 %>% 
+  filter(cntry == "EE" | cntry == "LT") %>% 
+  ggplot(aes(ccrdprs, weights = pspwght)) +
+    geom_bar() +
+    facet_wrap(~ cntry)
+
+r8 %>% 
+  filter(cntry == "EE" | cntry == "LT") %>% 
+  group_by(cntry) %>% 
+  summarise(kesk = weighted_mean(ccrdprs, w = pspwght),
+            asymm = weighted_skewness(ccrdprs, w = pspwght),
+            kurt = weighted_kurtosis(ccrdprs, w = pspwght))
+
+ee8 <- r8 %>% 
+  filter(cntry == "EE")
+
+lt8 <- r8 %>% 
+  filter(cntry == "LT")
+
+wtd.t.test(ee8$ccrdprs, lt8$ccrdprs, ee8$pspwght, lt8$pspwght)
+
+ttest_ccrdprs <- wtd.t.test(ee8$ccrdprs, lt8$ccrdprs, ee8$pspwght, lt8$pspwght)
+ttest_ccrdprs$additional[1] - 1.96 * ttest_ccrdprs$additional[4]
+ttest_ccrdprs$additional[1] + 1.96 * ttest_ccrdprs$additional[4]
+```
+
+### Lahendus
+
+```{r eval = FALSE}
+r8 %>% 
+  filter(cntry == "EE" | cntry == "LT") %>% 
+  ggplot(aes(ccrdprs, weights = pspwght)) +
+    geom_bar() +
+    facet_wrap(~ cntry)
+
+r8 %>% 
+  filter(cntry == "EE" | cntry == "LT") %>% 
+  group_by(cntry) %>% 
+  summarise(kesk = weighted_mean(ccrdprs, w = pspwght),
+            asymm = weighted_skewness(ccrdprs, w = pspwght),
+            kurt = weighted_kurtosis(ccrdprs, w = pspwght))
+
+ee8 <- r8 %>% 
+  filter(cntry == "EE")
+
+lt8 <- r8 %>% 
+  filter(cntry == "LT")
+
+wtd.t.test(ee8$ccrdprs, lt8$ccrdprs, ee8$pspwght, lt8$pspwght)
+
+ttest_ccrdprs <- wtd.t.test(ee8$ccrdprs, lt8$ccrdprs, ee8$pspwght, lt8$pspwght)
+ttest_ccrdprs$additional[1] - 1.96 * ttest_ccrdprs$additional[4]
+ttest_ccrdprs$additional[1] + 1.96 * ttest_ccrdprs$additional[4]
+```

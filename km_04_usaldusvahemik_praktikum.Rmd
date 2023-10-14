@@ -114,3 +114,139 @@ Kus tarvis, arvutage keskmiste erinevuste usaldusvahemikud.
 ## Harjutus 5
 
 Tehke harjutused 3 ja 4 läbi, võttes arvesse kaale. Kuivõrd tulemused erinevad?
+
+## Harjutus 6
+
+Kas samal ajal kui RE reiting augusti ja septembri võrdluses tõusis, saame väita, et KE reiting langes?
+
+Praktikumislaididel oleva RE reitingute võrdluse kood, mida saate ülesande lahendamisel kasutada:
+
+```{r}
+erakond <- rep(c("RE", "KE", "EKRE", "SDE", "Eesti 200", "Isamaa", 
+                 "Rohelised", "Tulevik", "Muu"), 2)
+reiting <- data.frame(erakond)
+reiting$poolehoid <- c(0.23, 0.26, 0.20, 0.10, 0.09, 0.05, 0.02, 
+                       0.01, 0.04, 0.27, 0.24, 0.16, 0.11, 0.09, 
+                       0.05, 0.03, 0.03, 0.02)
+reiting$kuu <- c(rep("August", 9), rep("September", 9))
+
+reiting <- reiting %>% 
+  mutate(poolehoid_n = ifelse(kuu == "August", 
+                              poolehoid * 1003, 
+                              poolehoid * 1010) %>% 
+           round())
+
+library(DescTools)
+
+poolehoid_aug <- reiting %>% 
+  filter(kuu == "August") %>% 
+  pull(poolehoid_n) %>% 
+  MultinomCI(conf.level = 0.95, method = "wilson")
+
+poolehoid_sept <- reiting %>% 
+  filter(kuu == "September") %>% 
+  pull(poolehoid_n) %>% 
+  MultinomCI(conf.level = 0.95, method = "wilson")
+
+poolehoid_ci <- rbind(poolehoid_aug, poolehoid_sept) %>% 
+  as.data.frame()
+
+poolehoid_ci$erakond <- reiting$erakond
+poolehoid_ci$kuu <- reiting$kuu
+
+library(scales)
+ggplot(poolehoid_ci, aes(x = erakond, y = est, fill = kuu)) +
+  geom_bar(stat = "identity", position = "dodge", width = 0.9) +
+  geom_errorbar(aes(ymin = lwr.ci, ymax = upr.ci), position = position_dodge2(width = 0.6, padding = 0.6), color = "black") +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1L)) +
+  scale_x_discrete(limits = poolehoid_ci$erakond[1:9]) +
+  labs(x = "Erakond",
+       y = "Osakaal") +
+  theme_light()
+```
+
+$$Z = \frac{\hat{p}_1 - \hat{p}_2}{\sqrt{\hat{p}(1-\hat{p})(\frac{1}{n_1}+\frac{1}{n_2})}}$$
+
+- $\hat{p}_1$ -- esimese grupi osakaal esimesest valimist $(n_1)$
+
+- $\hat{p}_2$ -- teise grupi osakaal teisest valimist $(n_2)$
+
+- $\hat{p}$ -- mõlema grupi osakaal mõlema valimi peale kokku: $\frac{\hat{p}_1 + \hat{p}_2}{n_1+n_2}$
+
+- $n_1$ -- esimese valimi suurus
+
+- $n_2$ -- teise valimi suurus
+
+```{r}
+ind_arv_gruppides <- reiting %>% 
+  filter(erakond == "RE") %>% 
+  pull(poolehoid_n)
+
+
+n1 <- reiting %>% 
+  filter(kuu == "August") %>% 
+  pull(poolehoid_n) %>% 
+  sum()
+
+n2 <- reiting %>% 
+  filter(kuu == "September") %>% 
+  pull(poolehoid_n) %>% 
+  sum()
+
+prop.test(ind_arv_gruppides, c(n1, n2), correct = FALSE)
+```
+
+## Harjutus 7
+
+- KE ja RE reitingute erinevust 2020 septembris väita ei saanud. Kas 2020 augustis oli RE edumaa siiski statistilisest veast suurem, st sai väita RE kõrgemat reitingut KE-st?
+
+- Osakaalude erinevuse usalduspiiride valem (Scott ja Seber 1983):
+
+$$p_1 - p_2 >= \hat{p}_1 - \hat{p}_2 - z_{1 - \frac{\alpha}{2}}\sqrt{\frac{\hat{p}_1+\hat{p}_2-(\hat{p}_1-\hat{p}_2)^2}{n}}$$
+
+$$p_1 - p_2 <= \hat{p}_1 - \hat{p}_2 + z_{1 - \frac{\alpha}{2}}\sqrt{\frac{\hat{p}_1+\hat{p}_2-(\hat{p}_1-\hat{p}_2)^2}{n}}$$
+
+- $p_1, p_2$ -- esimese ja teise grupi osakaal populatsioonis
+
+- $\hat{p}_1, \hat{p}_2$ -- esimese ja teise grupi osakaal valimis
+
+- $z_{1 - \frac{\alpha}{2}}$ -- standardiseeritud normaaljaotuse $1 - \frac{\alpha}{2}$-kvantiil
+
+- $n$ -- valimi suurus
+
+Praktikumislaididel olev RE ja KE septembrireitingute võrdlus, mida saate ülesande lahendamisel kasutada:
+
+- RE septembrikuu reiting
+
+```{r}
+p1 <- reiting %>% 
+  filter(erakond == "RE" & kuu == "September") %>% 
+  pull(poolehoid)
+```
+
+- KE septembrikuu reiting
+
+```{r}
+p2 <- reiting %>% 
+  filter(erakond == "KE" & kuu == "September") %>% 
+  pull(poolehoid)
+```
+
+- Reitingute erinevus valimis
+
+```{r}
+p1 - p2
+```
+
+
+- Alumine usalduspiir: $p_1 - p_2 >= \hat{p}_1 - \hat{p}_2 - z_{1 - \frac{\alpha}{2}}\sqrt{\frac{\hat{p}_1+\hat{p}_2-(\hat{p}_1-\hat{p}_2)^2}{n}}$
+
+```{r}
+p1 - p2 - 1.96 * sqrt((p1 + p2 - (p1 - p2)^2) / n2) 
+```
+
+- Ülemine usalduspiir: $p_1 - p_2 <= \hat{p}_1 - \hat{p}_2 + z_{1 - \frac{\alpha}{2}}\sqrt{\frac{\hat{p}_1+\hat{p}_2-(\hat{p}_1-\hat{p}_2)^2}{n}}$
+
+```{r}
+p1 - p2 + 1.96 * sqrt((p1 + p2 - (p1 - p2)^2) / n2) 
+```

@@ -1,0 +1,505 @@
+---
+title: 'Hüpoteeside testimine: praktikum'
+author: "Indrek Soidla"
+date: '2023-10-04'
+output: 
+  ioslides_presentation:
+    widescreen: true
+    transition: faster
+    incremental: false
+---
+
+```{css, echo = FALSE}
+ul li {
+    font-size: 20px;
+}
+
+.smallish ul li {
+  font-size: 20px;
+}
+
+pre {
+  font-size: 18px;
+  line-height: 1.2em;
+}
+
+.valjund {
+  font-size: 18px;
+}
+
+p.caption {
+  font-size: 0.5em;
+  font-style: italic;
+}
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Miks hüpoteeside testimisega tegeleme?
+
+- Kas usaldus Riigikogu vastu on sisserändajate ja Eestis sündinute võrdluses keskmiselt erinev?
+  - Teisiti sõnastades: kas sisserändajad ja Eestis sündinud usaldavad Riigikogu keskmiselt erineval määral?
+  - Analüüsime seda ESS 2018. aasta andmete alusel
+
+## Miks hüpoteeside testimisega tegeleme?
+
+```{r message = FALSE, warning = FALSE}
+library(haven)
+library(tidyverse)
+library(TAM)
+
+ee9 <- read_spss("data/ee9.sav")
+
+ee9 <- ee9 %>% 
+  mutate(brncntr2 = recode(as.factor(brncntr), 
+                           "1" = "Jah",
+                           "2" = "Ei"))
+
+ee9 %>% 
+  group_by(brncntr2) %>% 
+  summarise(keskmine = weighted_mean(trstprl, w = pspwght))
+```
+
+## Miks hüpoteeside testimisega tegeleme?
+
+- Näeme, et keskmised erinevad 0,4 palli võrra, mis pole just suur erinevus, aga võib siiski sisulisel tasandil oluline olla
+- See erinevus käib selle valimi kohta, kas saame keskmiste erinevust väita ka populatsioonis (rahvastikus)?
+
+## Hüpoteeside testimine
+
+- Püstitame null- ja alternatiivhüpoteesi
+- Valime olulisuse nivoo $(\alpha)$
+- Valime statistilise testi
+  - valik sõltub 
+    - sellest, mida tahame testida
+    - tunnuste iseloomust
+    - testi eelduste täidetusest
+- Arvutame teststatistiku väärtuse 
+  - andmeanalüüsi programm arvutab ka muud vajalikud näitajad
+- Teeme otsuse hüpoteesipaari kohta
+
+## Hüpoteesipaari kohta otsuse tegemine I
+
+- Võimalus 1:
+- võrdleme saadud teststatistiku väärtust teststatistiku kriitilis(t)e väärtus(t)ega 
+  - millised on kriitilised väärtused, sõltub
+    - teststatistikust
+    - valitud olulisuse nivoost
+    - vabadusastmete arvust
+  - teisisõnu, kas saadud teststatistiku väärtus asub kriitilises piirkonnas
+  - kui asub, kinnitame alternatiivhüpoteesi
+  - kui ei asu, jääme nullhüpoteesi juurde
+
+## Hüpoteesipaari kohta otsuse tegemine II
+
+- Võimalus 2:
+- võrdleme teststatistiku olulisuse *tõenäosust* $(p)$ valitud olulisuse *nivooga* $(\alpha)$
+  - kui $p < \alpha$ ehk olulisuse tõenäosus on väiksem olulisuse nivoost, kinnitame alternatiivhüpoteesi
+  - kui $p \geq \alpha$, jääme nullhüpoteesi juurde
+  
+## Hüpoteesipaari kohta otsuse tegemine III
+
+- Võimalus 3(*-ish*):
+- pmst ka kolmas võimalus (enamasti küll pigem illustratiivse / sisulise tõlgenduse funktsioonis): 
+  - võrdleme teststatistiku vm testimise objektiks oleva näitaja usaldusvahemikku nullhüpoteesiga kooskõlas oleva väärtusega
+  - *t*-testi puhul, kui H0 väidab keskmiste võrdumist ehk keskmiste erinevus on null: võrdleme keskmiste erinevuse usaldusvahemikku nulliga
+    - kui keskmiste erinevuse usaldusvahemik ei kata nulli, näitab see, et saame kinnitada alternatiivhüpoteesi
+    - kui usaldusvahemik katab nulli, jääme nullhüpoteesi juurde
+
+## Mitte sassi ajada!
+
+- Olulisuse nivoo
+- Olulisuse tõenäosus
+- Usaldusnivoo
+- Usaldusvahemik
+
+## Olulisuse nivoo ja usaldusnivoo
+
+- Mille poolest sarnanevad / erinevad?
+- Sama mündi kaks poolt
+- Hüpoteeside testimisel võtame aluseks olulisuse nivoo (0,05 või 0,1 või 0,01 (või 0,001))
+- Usaldusvahemiku arvutamisel usaldusnivoo (95% või 90% või 99%)
+- Nii olulisuse nivoo 0,05 (ehk 5%) kui usaldusnivoo 95% puhul võetakse arvutuste aluseks
+väärtused -1,96 ja 1,96
+- Miks siis kaks erinevat mõistet?
+- Usaldusvahemiku puhul huvitab meid see, mis jääb nende väärtuste alusel arvutatavate piiride
+(usalduspiiride) *vahele*
+  - Vahemik, mis *katab* tegeliku väärtuse populatsioonis
+- Hüpoteeside testimisel huvitab meid see, kas teststatistik jääb nende väärtuste alusel
+arvutatavatest piiridest (kriitilistest väärtustest) *väljapoole*
+  - Kui jääb, saame kinnitada alternatiivhüpoteesi
+
+## Olulisuse nivoo ja usaldusnivoo
+
+- Oluline tehniline erinevus:
+  - usalduspiiride väärtused sõltuvad valitud usaldusnivoost
+    - arvutamisel on vaja usaldusnivoo väärtus arvesse võtta
+    - programmides vaikimisi usaldusnivoo väärtus 95%, arvutuse tulemus sõltub sellest
+  - olulisuse tõenäosus ja muud statistilise testi tulemused ei sõltu valitud olulisuse nivoost
+    - arvutamisel ei ole vaja (ei saagi) olulisuse nivood kuskil seadistada
+    - järelduse tegemisel on siiski olulisuse nivood vaja
+
+# Erinevad *t*-testid
+
+## Erinevad *t*-testid
+
+- Sõltumatute kogumite *t*-test
+- Ühe kogumi *t*-test
+- Paariskogumite *t*-test
+
+## Sõltumatute kogumite *t*-test
+
+- Võrdleme arvulise tunnuse keskmisi kategoriseeriva tunnuse lõikes
+
+$$t = \frac{m_1 - m_2}{s} \sqrt{\frac{n_1n_2}{n_1+n_2}}$$
+
+- $m_1, m_2$ – arvulise tunnuse keskmised kogumites
+- $n_1, n_2$ – indiviidide arvud kogumites
+- $s$ – kahe kogumi ühise standardhälbe hinnang
+$$s = \sqrt{\frac{(n_1 - 1)s_1^2 + (n_2 - 1)s_2^2}{n_1 + n_2 - 2}}$$
+
+- $s_1^2, s_2^2$ – arvulise tunnuse dispersioonid kogumites
+
+## Sõltumatute kogumite *t*-test
+
+- Eeldused:
+    - Arvulise tunnuse jaotus gruppide lõikes normaaljaotuse lähedane
+    - Arvulise tunnuse hajuvus gruppide lõikes sarnane
+        - kui ei ole => Welchi *t*-test
+$$t = \frac{m_1 - m_2}{\sqrt{\frac{s_1^2}{n_1}+\frac{s_2^2}{n_2}}}$$
+
+## Kontrollime testi eelduste täidetust
+
+:::: {style="display: flex;"}
+:::{}
+- Statistilise testi tulemuseks on teststatistik, mis võimaldab hüpoteesipaari kohta otsuse teha
+- Kui kasutame *t*-testi, nimetatakse teststatistikut *t*-statistikuks (*t* väärtus valemis)
+- Kui meil poleks vaja andmeid kaaluda, saaksime selle arvutada järgmiselt
+- Kontrollime *t*-testi eelduste täidetust
+
+```{r eval = FALSE}
+library(summarytools)
+
+ee9 %>% 
+  group_by(brncntr2) %>% 
+  descr(trstprl)
+```
+:::
+:::{}
+```{r message = FALSE, echo = FALSE}
+library(summarytools)
+
+ee9 %>% 
+  group_by(brncntr2) %>% 
+  descr(trstprl)
+```
+
+- Parlamendi usaldushinnangute jaotused on normaaljaotuselähedased, hajuvused on sarnased
+:::
+::::
+
+## Arvutame teststatistiku
+
+- Andmeid mitte kaaludes saame kasutada R-i baasversioonis olevat funktsiooni `t.test`
+
+```{r}
+t.test(trstprl ~ brncntr, data = ee9, var.equal = TRUE)
+```
+
+- Andmeid kaalumata on kahes grupis Riigikogu usaldushinnangute keskmised 4,8 ja 5,22 palli
+- *t*-statistiku väärtus on antud juhul -2,53
+
+## Arvutame teststatistiku
+
+- Kui eeldus arvulise tunnuse hajuvuste sarnasuse kohta gruppides pole täidetud, saab kasutada Welchi *t*-testi, mis ongi funktsiooni `t.test` vaikeseadistus
+
+```{r}
+t.test(trstprl ~ brncntr, data = ee9)
+```
+
+## Kontrollime eelduste täidetust andmeid kaaludes
+
+- Küsitlusandmete puhul on tavaliselt vaja esinduslikkuse parandamiseks andmeid ka kaaluda
+- Seega eeldatavasti saaksime antud juhul täpsema tulemuse, arvutades *t*-statistiku kaale arvesse võttes
+- Kontrollime *t*-testi eelduste täidetust
+
+```{r}
+ee9 %>% 
+  group_by(brncntr2) %>% 
+  summarise(keskmine = weighted_mean(trstprl, w = pspwght),
+            sd = weighted_sd(trstprl, w = pspwght),
+            asymm = weighted_skewness(trstprl, w = pspwght),
+            kurt = weighted_kurtosis(trstprl, w = pspwght))
+```
+
+- Andmeid kaaludes on jaotusparameetrid võrreldes eelnevaga väga sarnased, *t*-testi eeldused on täidetud ka siin
+
+## Arvutame teststatistiku andmeid kaaludes
+
+- Kasutame andmete kaalumisega *t*-testi tegemiseks funktsiooni `wtd.t.test` paketist `weights` (teeb Welchi *t*-testi)
+
+```{r message = FALSE, warning = FALSE}
+brn_y <- ee9 %>% filter(brncntr2 == "Jah")
+brn_n <- ee9 %>% filter(brncntr2 == "Ei")
+library(weights)
+wtd.t.test(brn_y$trstprl, brn_n$trstprl, brn_y$pspwght, brn_n$pspwght)
+```
+
+- Antud juhul *t*-statistiku väärtus kaale arvestades eelnevast praktiliselt ei erine
+- Alati see siiski nii ei pruugi olla, andmete kaalumine võib mõnede teiste tunnuste puhul tulemusi mõjutada küll
+
+## Kui suur on keskmiste erinevus?
+
+- Meie näites valimikeskmised kahes grupis olid 4,84 ja 5,24, keskmiste erinevus 0,4 palli
+- Olulisuse nivool 0,05 saime öelda, et keskmiste erinevus esineb ka populatsioonis
+- Aga kui suur see keskmiste erinevus populatsioonis on? 
+- Kas H1 kinnitamisel saame öelda, et erinevus 0,4 palli esineb ka populatsioonis?
+- Ei saa, selle hindamiseks peaks arvutama keskmiste erinevuse usaldusvahemiku
+
+## Kui suur on keskmiste erinevus?
+
+- Kui otsuse hüpoteesipaari kohta tegime olulisuse nivool 0,05, peaks keskmiste erinevuse usaldusvahemiku arvutama usaldusnivool 95%
+- Funktsioon `t.test` (kaalumata andmetega) annab selle väljundis, funktsiooni `wtd.t.test` saame selle ise standardvea põhjal arvutada
+
+:::: {style="display: flex;"}
+:::{}
+```{r warning = FALSE}
+wtd.t.test(brn_y$trstprl, brn_n$trstprl, brn_y$pspwght, brn_n$pspwght)
+```
+:::
+:::{}
+```{r}
+-0.4 - 1.96 * 0.179 # Alumine usalduspiir
+-0.4 + 1.96 * 0.179 # Ülemine usalduspiir
+```
+:::
+::::
+
+## Kui suur on keskmiste erinevus?
+
+- Kui soovime arvutuse teha otse väljundinäitajate põhjal
+
+```{r warning = FALSE}
+ttest <- wtd.t.test(brn_y$trstprl, brn_n$trstprl, brn_y$pspwght, brn_n$pspwght)
+str(ttest)
+ttest$additional[1] - 1.96 * ttest$additional[4] # Alumine usalduspiir
+ttest$additional[1] + 1.96 * ttest$additional[4] # Ülemine usalduspiir
+```
+
+## Kui suur on keskmiste erinevus?
+
+- Võttes aluseks usaldusnivoo 95%, saab väita, et keskmiste erinevus võib populatsioonis olla nii väike kui 0,05 palli, aga võib ka olla nii suur kui 0,75 palli
+- *t*-test võimaldab lihtsalt öelda, kas keskmised erinevad, keskmiste erinevuse usaldusvahemik võimaldab erinevust sisulisemalt hinnata
+- Ka kolmas võimalus keskmiste erinevuse kohta populatsioonis otsuse tegemiseks: kas keskmiste erinevuse usaldusvahemik katab nullpunkti või mitte
+  - Antud viisil tehtav otsus ei saa eelnevatel viisidel tehtavate otsustega vastuollu minna, kui usaldusvahemik arvutatakse eelnevate otsuste olulisuse nivoole vastaval usaldusnivool (olulisuse nivoole 0,05 vastab usaldusnivoo 95%)
+
+# Kahepoolne ja ühepoolne hüpoteesipaar
+
+## Kahepoolne ja ühepoolne hüpoteesipaar
+
+- Praegusel juhul:
+  - H0: Eestis sündinute ja sisserännanute keskmine usaldus Riigikogu vastu ei erine ($m_e = m_s$)
+  - H1: Eestis sündinute ja sisserännanute keskmine usaldus Riigikogu vastu erineb ($m_e \neq m_s$)
+- Tegu on kahepoolse hüpoteesipaariga – H1 seondub arvtelje kahe lõiguga
+- Hüpoteesipaar (täpsemalt, alternatiivhüpotees) võib olla ka ühepoolne
+- Sel juhul seondub H1 arvtelje ühe lõiguga, hüpoteesipaar võib olla 
+  - H0: $m_e \geq m_s$ ja H1: $m_e < m_s$ või
+  - H0: $m_e \leq m_s$ ja H1: $m_e > m_s$
+- Võimalik ühepoolne hüpoteesipaar lahti sõnastatult meie näite puhul
+  - H0: Eestis sündinute seas on keskmine usaldus Riigikogu vastu kõrgem või võrdne usaldusega sisserännanute hulgas ($m_e \geq m_s$)
+  - H1: Eestis sündinute seas on keskmine usaldus Riigikogu vastu madalam kui sisserännanute hulgas ($m_e < m_s$)
+    
+## Kahepoolne ja ühepoolne hüpoteesipaar
+
+- Eelnev arutelu ja näide põhinesid kahepoolse hüpoteesipaari testimisel
+  - H0: Eestis sündinute ja sisserännanute keskmine usaldus Riigikogu vastu ei erine ($m_e = m_s$)
+  - H1: Eestis sündinute ja sisserännanute keskmine usaldus Riigikogu vastu erineb ($m_e \neq m_s$)
+- Kui hüpoteesipaar on ühepoolne, tuleb
+  - teststatistiku kriitilised väärtused arvutada natuke teisel põhimõttel
+
+## Kahepoolne ja ühepoolne hüpoteesipaar
+
+:::: {style="display: flex;"}
+:::{}
+- Kahepoolne hüpoteesipaar: kriitilised piirkonnad asuvad *t*-jaotuse mõlema „saba“ all
+- Olulisuse nivool 0,05 on kriitilised piirid -1,96 ja 1,96, sest
+  - nullhüpoteesi kehtides jäävad nendest kaugemale 5% võimalike valimite *t*-statistikud
+  - hallid alad joonisel moodustavad kokku 5% joonealusest pindalast
+- ![](pics/ndl_06_joon_03.jpg){width=75%}
+:::
+:::{}
+- Ühepoolne hüpoteesipaar: kriitiline piirkond asub *t*-jaotuse selle "saba" all, mida väidab H1
+- Olulisuse nivool 0,05 peab 5% joonealusest alast mahtuma vaid ühe saba alla =>
+- Kriitiline väärtus (neid on nüüd ainult üks!) on madalam kui kahepoolse hüpoteesipaari korral
+- Nt kui hüpoteesipaar on H0: $m_e \geq m_s$ ja H1: $m_e < m_s$, siis kriitiline väärtus on -1,64:
+- ![](pics/ndl_06_joon_04.jpg){width=75%}
+:::
+::::
+
+## Ühepoolse hüpoteesipaari testimise näide
+
+- Testime ühepoolset hüpoteesipaari
+  - H0: Eestis sündinute seas on keskmine usaldus Riigikogu vastu kõrgem või võrdne usaldusega sisserännanute hulgas ($m_e \geq m_s$)
+  - H1: Eestis sündinute seas on keskmine usaldus Riigikogu vastu madalam kui sisserännanute hulgas ($m_e < m_s$)
+
+```{r}
+wtd.t.test(brn_y$trstprl, brn_n$trstprl, brn_y$pspwght, brn_n$pspwght, alternative = "less")
+```
+
+- Kõik testitulemused on samad, mis kahepoolse hüpoteesipaari puhul, välja arvatud olulisuse tõenäosus, mis on poole madalam (0,013 vs 0,025)
+
+## Kahepoolne ja ühepoolne hüpoteesipaar
+
+- Nagu eelnevalt märgitud, ka *t*-statistiku kriitiline väärtus on vaadeldava saba all ühepoolse hüpoteesipaari puhul madalam (olulisuse nivool 0,05 antud juhul -1,64 *vs* -1,96)
+- Paradoksaalsel kombel on spetsiifilisema tingimuse täidetust (esimese grupi keskmine on madalam) n-ö kergem tõestada kui leebema tingimuse puhul (esimese grupi keskmine on madalam või kõrgem)
+- Võib kallutada uurijat valima testimise viisi, mis sobib eeldatavate tulemustega paremini:
+  - kui kahepoolse hüpoteesipaari puhul on olulisuse tõenäosus ainult natuke üle olulisuse nivoo, võimaldab ühepoolse hüpoteesipaari testimine saada statistiliselt olulise tulemuse
+  - seda nimetatakse *p-hacking*
+  - selle vältimiseks tuleks olulisuse nivoo ja hüpoteesipaar tuleks sõnastada enne testima asumist
+
+## Valik ühe- ja kahepoolse hüpoteesipaari vahel
+
+- Hüpoteesipaari võib sõnastada ühepoolsena, aga sel juhul peame arvestama, et teistpidine erinevus võib jääda meil tuvastamata
+- Nt antud juhul saaksime alternatiivhüpoteesiga Eestis sündinute kõrgemat usalduse taset väites väga kõrge olulisuse tõenäosuse (*p*-väärtus on nüüd 1 - eelnevalt saadud olulisuse tõenäosuse väärtus):
+
+```{r}
+wtd.t.test(brn_y$trstprl, brn_n$trstprl, brn_y$pspwght, brn_n$pspwght, alternative = "greater")
+```
+
+- Antud näide sobib selle ohu illustreerimiseks hästi
+
+## Valik ühe- ja kahepoolse hüpoteesipaari vahel
+
+- Pigem võiks intuitiivselt eeldada, et Eestis sündinud inimesed usaldavad Riigikogu rohkem
+- Vastavat ühepoolset alternatiivhüpoteesi testides (*t*-test eelneval slaidil) saaksime teada, et see pole üldse tõepärane
+- Vastupidise alternatiivhüpoteesi kehtivuse kohta me midagi teada ei saaks, selle kehtivus jääks tuvastamata
+  - Mõlemat ühepoolset hüpoteesipaari (kumbki olulisuse nivool 0,05) testida ei oleks korrektne, sest sisuliselt teeksime siis kogujärelduse olulisuse nivool 0,1.
+- Seega, praktikas võib ja saab ühepoolse hüpoteesipaari testimist kasutada, aga 
+  - piiripealsete tulemuste puhul, kus valikust ühe- ja kahepoolse hüpoteesipaari vahel sõltuvad sisulised järeldused, 
+  - tuleks seda valikut kindlasti põhjendada
+- Muidu riskime oma analüüsi tõsiseltvõetavusega
+- Praktikas kasutatakse hüpoteeside testimisel reeglina kahepoolset hüpoteesipaari (tihti ka juhul, kui sisulises mõttes ollakse huvitatud ühepoolsetest järeldustest)
+
+## Ühe kogumi *t*-test
+
+- Põhimõte sarnane sõltumatute kogumite (kahe kogumi) *t*-testile
+- Ühe valimi alusel mõõdetud kogumi keskmise asemel on mingi kindel väärtus
+- Testime, kas valimi alusel arvutatud keskmine sellest erineb
+- Nt kui tahame teada, kas valimi alusel saab väita, et Eesti elanike usaldus parlamendi vastu on alla skaala keskpunkti
+- Saab alternatiivhüpoteesi ühepoolsena sõnastada, kui oluline on just teada saada, kas usaldus on *alla* skaala keskpunkti
+- Kas või kui palju on keskmine usaldus üle skaala keskpunkti, see meid ei huvita, sest nt tarvis on midagi Riigikogu usaldamise suhtes ette võtta ainult siis, kui sellega on nii kehvad lood, et jääb alla skaala keskpunkti
+   - H0: $m \geq 5$
+   - H1: $m < 5$
+   
+## Ühe kogumi *t*-test
+
+- Andmeid kaalumata: kontrollime testi eeldusi
+
+```{r}
+descr(ee9$trstprl)
+```
+
+## Ühe kogumi *t*-test
+
+- Asümmeetria- ja järskuskordaja on nullile küllaltki lähedal, seega normaaljaotuse läheduse eeldus on täidetud. Kuna antud t-testi puhul võrreldakse tunnuse keskmist etteantud väärtusega, ei ole hajuvuste sarnasuse eelduseks alust.
+
+```{r}
+t.test(trstprl ~ 1, mu = 5, data = ee9, alternative = "less")
+```
+
+- *t*-statistik on -2,5, vabadusastmete arvu 1889 juures on olulisuse tõenäosus 0,006, alternatiivhüpoteesi saab olulisuse nivool 0,05 kinnitada, saaksi segi olulisuse nivool 0,01.
+
+## Ühe kogumi *t*-test
+
+- Andmeid kaaludes, eelduste kontroll:
+
+```{r}
+weighted_skewness(ee9$trstprl, w = ee9$pspwght)
+weighted_kurtosis(ee9$trstprl, w = ee9$pspwght)
+```
+
+- Kaalutud kujuparameetrid ei erine kuigivõrd kaalumata kordajatest
+
+## Ühe kogumi *t*-test
+
+```{r}
+wtd.t.test(ee9$trstprl, 5, weight = ee9$pspwght, alternative = "less")
+```
+
+- *t*-statistiku väärtus on -2,03, vabadusastmete arvu 1891 juures on olulisuse tõenäosus 0,021. Võttes aluseks olulisuse nivoo 0,05, saab öelda, et usalduse keskmine on alla skaala keskpunkti
+
+## Statistilise ja sisulise olulisuse erinevus
+
+- Statistiliselt on eelnev järeldus õige, küll aga tuleb siin hästi esile, et on vaja eristada statistilist olulisust ja sisulist olulisust
+- Tulemus on statistiliselt oluline, aga keskmise ja skaala keskpunkti erinevus on usaldusnivool 95% vahemikus $-0.1145 - 1.96 \cdot 0.0566 = -0.225$ ja $-0.1145 + 1.96 \cdot 0.0566 = -0.004$
+- See tähendab, et erinevus on maksimaalselt alla veerand palli ja ilmselt veel väiksemgi - liiga väike, et mingeid märkimisväärseid sisulisi järeldusi teha
+- Statistiliselt oluline tulemus ei tähenda veel sisuliselt olulist tulemust
+  - Aga statistiliselt olulise tulemuse puudumisel pole mõtet ka sisulise tõlgendamisega vaeva näha
+  - Sest puudub kindlus, et erinevus/seos populatsioonis üldse esineks
+- Statistiline olulisus konkreetne (kuigi tinglik!), sisulise olulisuse aluseks (vähemalt mingis ulatuses) subjektiivne hinnang
+
+## Paariskogumite *t*-test
+
+- Kasutatakse, kui vaatlused on omavahel seotud
+- St me ei võrdle kahe erineva grupi keskmisi, vaid samade indiviidide keskmisi, mis nt
+   - on mõõdetud erinevatel ajahetkedel
+       - nt samade indiviidide rahulolu eluga enne ja majanduskriisi ajal
+   - mõõdavad erinevaid nähtusi
+       - nt samade indiviidide õnnelikkuse ja eluga rahulolu hinnangud
+       - tegu on sarnaste kontseptsioonidega, aga sisuliselt on nad siiski erinevad
+       - kas erinevus esineb ka hinnangutes?
+- Kontrollime testi eelduste täidetust, näite mõttes esmalt kaalumata andmetega
+
+## Paariskogumite *t*-test
+:::: {style="display: flex;"}
+:::{}
+```{r}
+descr(ee9$happy)
+```
+:::
+:::{}
+```{r}
+descr(ee9$stflife)
+```
+:::
+::::
+- Asümmeetria- ja järskuskordajad näitavad märkimisväärset erinevust normaaljaotusest, kuid erinevus ei ole nii suur, et t-testi ei võiks teha. Piiripealsete tulemuste tõlgendamisel peaks siiski ettevaatlik olema.
+
+## Paariskogumite *t*-test
+
+```{r}
+t.test(Pair(happy, stflife) ~ 1, data = ee9)
+```
+
+- Tõlgendame testitulemusi kaalutud andmete näite juures, sest tulemused sisuliselt ei erine.
+
+## Paariskogumite *t*-test
+:::: {style="display: flex;"}
+:::{}
+- Kaalutud andmetega
+
+```{r}
+weighted_skewness(ee9$happy, w = ee9$pspwght)
+weighted_kurtosis(ee9$happy, w = ee9$pspwght)
+weighted_skewness(ee9$stflife, w = ee9$pspwght)
+weighted_kurtosis(ee9$stflife, w = ee9$pspwght)
+```
+:::
+:::{}
+- Jaotusparameetrid on enam-vähem samad, mis kaalumata andmetega
+- Paariskogumite *t*-testi tegemiseks arvutame esmalt iga indiviidi kohta tema õnnelikkuse ja eluga rahulolu hinnangu vahe. Seejärel kontrollime ühe kogumi *t*-testiga vahede keskmise erinevust nullist (mis ongi paariskogumite *t*-testi iva).
+:::
+::::
+
+## Paariskogumite *t*-test
+
+```{r}
+ee9$happy_stflife <- ee9$happy - ee9$stflife
+wtd.t.test(ee9$happy_stflife, 0, weight = ee9$pspwght)
+```
+
+- Tulemus on selgelt statistiliselt oluline (ka kõige rangemal olulisuse nivool), sest t-statistiku väärtus on suur ja olulisuse tõenäosus on $6.66 * 10^{-16}$ ehk $p = 0.000000000000000666$ (16 nulli enne esimest 6)
+- Arvu väiksuse tõttu kasutataksegi siin arvu standardkuju (kümne astmete näol), tekstis võiks tulemuse ka esitada rangeima olulisuse nivoo abil: $p < 0.001$
+- Kuigi olulisuse tõenäosus on väga madal, ei ole sisulises plaanis tegu suure erinevusega, populatsioonis jääb keskmiste erinevus 0,22 ja 0,37 vahele (usaldusnivool 95%)
